@@ -6,29 +6,16 @@ Summary:        Denial of Service evasion module for Apache
 License:        GPL-2.0+
 Group:          Productivity/Networking/Web/Servers
 URL:            http://tn123.ath.cx/mod_xsendfile/
-Source0:        https://github.com/nmaier/mod_xsendfile/archive/0.12.tar.gz
-Source1:		300-mod_xsendfile.conf
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-
 BuildRequires:  ea-apache24-devel
 Requires:       ea-apache24 ea-apache24-devel
-
-Url:            http://zdziarski.com/blog/?page_id=442
-Source:         http://zdziarski.com/blog/wp-content/uploads/2010/02/mod_evasive_%version.tar.gz
-Source2:        mod_evasive.conf
-Patch1:         modev-return.diff
-Patch2:         mail-invocation.diff
-BuildRoot:      %{_tmppath}/%{name}-%{version}-build
-BuildRequires:  apache-rpm-macros
-BuildRequires:  apache2-devel
-BuildRequires:  apache2-prefork
+Source:         https://github.com/shivaas/mod_evasive/mod_evasive.tar.gz
+Source1:        300-mod_evasive.conf
+BuildRoot: 		%{_tmppath}/%{name}-%{version}-%{release}-root
+BuildRequires:  ea-apache24-devel
 BuildRequires:  curl-devel
-BuildRequires:  gcc-c++
 BuildRequires:  pcre-devel
-Recommends:     mailx
-Requires:       %{apache_mmn}
-Requires:       %{apache_suse_maintenance_mmn}
-Requires:       apache2
+Requires:       ea-apache24
 
 %description
 mod_evasive is an evasive maneuvers module for Apache to provide
@@ -39,34 +26,26 @@ firewalls, routers, and etcetera. mod_evasive presently reports
 abuses via email and syslog facilities.
 
 %prep
-%setup -qn mod_evasive
+%setup -q
 
 %build
-
-
-
-%endif
-/usr/bin/apsx -c mod_evasive.c
+cp mod_evasive{20,24}.c
+sed 's/connection->remote_ip/connection->client_ip/' < mod_evasive20.c > mod_evasive24.c
+sed -i 's/evasive20_module/evasive24_module/' mod_evasive24.c
+/usr/bin/apxs -Wc,"%{optflags}" -c mod_evasive24.c
 
 %install
-b="%"
-mkdir -p "%{BUILDROOT}/%apache_libexecdir" "%{BUILDROOT}/%apache_sysconfdir/conf.d"
-
-%apache_apxs -i -S LIBEXECDIR="%{BUILDROOT}/%apache_libexecdir" \
-	-n mod_evasive%{ap_suffix}.so mod_evasive.la;
-cp -a mod_evasive.conf "$b/%apache_sysconfdir/conf.d/";
-perl -i -pe "s{/usr/lib/}{%_libdir/}g" \
-	"$b/%apache_sysconfdir/conf.d/mod_evasive.conf";
-
-%check
-set +x
-%apache_test_module_load -m evasive%{ap_suffix} -i mod_evasive.conf
-set -x
+[ "%{buildroot}" != "/" ] && rm -rf %{buildroot}
+install -d -m 0755 %{buildroot}%{_sysconfdir}/apache2/conf.modules.d
+install -d -m 0755 %{buildroot}%{_libdir}/apache2/modules/
+install -m 0644 %{SOURCE1} %{buildroot}%{_sysconfdir}/apache2/conf.modules.d/300-mod_evasive.conf
+install -pm 755 .libs/mod_evasive24.so $RPM_BUILD_ROOT%{_libdir}/apache2/modules/
 
 %files
 %defattr(-,root,root)
-%apache_libexecdir/
-%config(noreplace) %apache_sysconfdir/conf.d/mod_evasive.conf
-%doc CHANGELOG LICENSE README test.pl
+%config(noreplace) %{_sysconfdir}/apache2/conf.modules.d/300-mod_evasive.conf
+%{_libdir}/apache2/modules/mod_evasive24.so
 
 %changelog
+* Tue Mar 14 2017 Jacob Perkins <jacob.perkins@cpanel.net> - 1.10.1-1
+- Initial commit
