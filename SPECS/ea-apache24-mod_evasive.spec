@@ -1,21 +1,20 @@
 Name:           ea-apache24-mod_evasive
 Version:        1.10.1
-%define 		release_prefix 1
-Release: 		%{release_prefix}%{?dist}.cpanel
+# Doing release_prefix this way for Release allows for OBS-proof versioning, See EA-4544 for more details
+%define         release_prefix 2
+Release:        %{release_prefix}%{?dist}.cpanel
+Vendor:         cPanel, Inc.
 Summary:        Denial of Service evasion module for Apache
 License:        GPL-2.0+
 Group:          Productivity/Networking/Web/Servers
 URL:            http://tn123.ath.cx/mod_xsendfile/
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-BuildRequires:  ea-apache24-devel
 Requires:       ea-apache24 ea-apache24-devel
 Source:         https://github.com/shivaas/mod_evasive/mod_evasive.tar.gz
 Source1:        300-mod_evasive.conf
-BuildRoot: 		%{_tmppath}/%{name}-%{version}-%{release}-root
+BuildRoot: 	%{_tmppath}/%{name}-%{version}-%{release}-root
 BuildRequires:  ea-apache24-devel
 BuildRequires:  curl-devel
 BuildRequires:  pcre-devel
-Requires:       ea-apache24
 
 %description
 mod_evasive is an evasive maneuvers module for Apache to provide
@@ -47,5 +46,8 @@ install -pm 755 .libs/mod_evasive24.so $RPM_BUILD_ROOT%{_libdir}/apache2/modules
 %{_libdir}/apache2/modules/mod_evasive24.so
 
 %changelog
+* Thu Oct 26 2017 Dan Muey <dan@cpanel.net> - 1.10.1-2
+- EA-6174: Promote from experimental repo to production
+
 * Tue Mar 14 2017 Jacob Perkins <jacob.perkins@cpanel.net> - 1.10.1-1
 - Initial commit
