@@ -11,6 +11,7 @@ URL:            http://tn123.ath.cx/mod_xsendfile/
 Requires:       ea-apache24 ea-apache24-devel
 Source:         https://github.com/shivaas/mod_evasive/mod_evasive.tar.gz
 Source1:        300-mod_evasive.conf
+Source2:        300-mod_evasive.modules.conf
 BuildRoot: 	%{_tmppath}/%{name}-%{version}-%{release}-root
 BuildRequires:  ea-apache24-devel
 BuildRequires:  curl-devel
@@ -35,15 +36,20 @@ sed -i 's/evasive20_module/evasive24_module/' mod_evasive24.c
 
 %install
 [ "%{buildroot}" != "/" ] && rm -rf %{buildroot}
-install -d -m 0755 %{buildroot}%{_sysconfdir}/apache2/conf.modules.d
-install -d -m 0755 %{buildroot}%{_libdir}/apache2/modules/
-install -m 0644 %{SOURCE1} %{buildroot}%{_sysconfdir}/apache2/conf.modules.d/300-mod_evasive.conf
+mkdir -p %{buildroot}%{_httpd_confdir}
+mkdir -p %{buildroot}%{_httpd_modconfdir}
+mkdir -p %{buildroot}%{_httpd_moddir}
+install -D %{SOURCE1} %{buildroot}%{_httpd_confdir}/300-mod_evasive.conf
+install -D %{SOURCE2} %{buildroot}%{_httpd_modconfdir}/300-mod_evasive.conf
+
 install -pm 755 .libs/mod_evasive24.so $RPM_BUILD_ROOT%{_libdir}/apache2/modules/
 
 %files
 %defattr(-,root,root)
-%config(noreplace) %{_sysconfdir}/apache2/conf.modules.d/300-mod_evasive.conf
-%{_libdir}/apache2/modules/mod_evasive24.so
+%config %{_httpd_confdir}/300-mod_evasive.conf
+%config(noreplace) %{_httpd_modconfdir}/300-mod_evasive.conf
+
+%attr(0755,root,nobody) %{_httpd_moddir}/mod_evasive24.so
 
 %changelog
 * Thu Oct 26 2017 Dan Muey <dan@cpanel.net> - 1.10.1-2
