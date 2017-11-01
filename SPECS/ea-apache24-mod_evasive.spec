@@ -36,6 +36,7 @@ sed -i 's/evasive20_module/evasive24_module/' mod_evasive24.c
 
 %install
 [ "%{buildroot}" != "/" ] && rm -rf %{buildroot}
+mkdir -p %{buildroot}/var/log/apache2/mod_evasive
 mkdir -p %{buildroot}%{_httpd_confdir}
 mkdir -p %{buildroot}%{_httpd_modconfdir}
 mkdir -p %{buildroot}%{_httpd_moddir}
@@ -48,7 +49,7 @@ install -pm 755 .libs/mod_evasive24.so $RPM_BUILD_ROOT%{_libdir}/apache2/modules
 %defattr(-,root,root)
 %config %{_httpd_confdir}/300-mod_evasive.conf
 %config(noreplace) %{_httpd_modconfdir}/300-mod_evasive.conf
-
+%attr(0770,root,nobody) %dir /var/log/apache2/mod_evasive
 %attr(0755,root,nobody) %{_httpd_moddir}/mod_evasive24.so
 
 %changelog
