@@ -1,7 +1,7 @@
 Name:           ea-apache24-mod_evasive
 Version:        1.10.1
 # Doing release_prefix this way for Release allows for OBS-proof versioning, See EA-4544 for more details
-%define         release_prefix 2
+%define         release_prefix 3
 Release:        %{release_prefix}%{?dist}.cpanel
 Vendor:         cPanel, Inc.
 Summary:        Denial of Service evasion module for Apache
