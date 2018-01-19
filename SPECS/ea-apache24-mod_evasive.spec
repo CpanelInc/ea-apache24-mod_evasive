@@ -1,7 +1,7 @@
 Name:           ea-apache24-mod_evasive
 Version:        1.10.1
 # Doing release_prefix this way for Release allows for OBS-proof versioning, See EA-4544 for more details
-%define         release_prefix 3
+%define         release_prefix 4
 Release:        %{release_prefix}%{?dist}.cpanel
 Vendor:         cPanel, Inc.
 Summary:        Denial of Service evasion module for Apache
@@ -53,6 +53,9 @@ install -pm 755 .libs/mod_evasive24.so $RPM_BUILD_ROOT%{_libdir}/apache2/modules
 %attr(0755,root,nobody) %{_httpd_moddir}/mod_evasive24.so
 
 %changelog
+* Fri Jan 19 2018 Jacob Perkins <jacob.perkins@cpanel.net> - 1.10.1-4
+- EA-7126: Raised default limits to ensure larger bursts of requests can occur without blocking
+
 * Tue Dec 05 2017 Jacob Perkins <jacob.perkins@cpanel.net> - 1.10.1-3
 - EA-7005: Fix URL to point to the proper upstream repository
 
