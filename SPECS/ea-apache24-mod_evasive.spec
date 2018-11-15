@@ -1,7 +1,7 @@
 Name:           ea-apache24-mod_evasive
 Version:        1.10.1
 # Doing release_prefix this way for Release allows for OBS-proof versioning, See EA-4544 for more details
-%define         release_prefix 4
+%define         release_prefix 5
 Release:        %{release_prefix}%{?dist}.cpanel
 Vendor:         cPanel, Inc.
 Summary:        Denial of Service evasion module for Apache
@@ -12,10 +12,12 @@ Requires:       ea-apache24 ea-apache24-devel
 Source:         https://github.com/shivaas/mod_evasive/mod_evasive.tar.gz
 Source1:        300-mod_evasive.conf
 Source2:        300-mod_evasive.modules.conf
+Source3:        generate_mod_evasive_local_ips_conf.pl
 BuildRoot: 	%{_tmppath}/%{name}-%{version}-%{release}-root
 BuildRequires:  ea-apache24-devel
 BuildRequires:  curl-devel
 BuildRequires:  pcre-devel
+AutoReq:        0
 
 %description
 mod_evasive is an evasive maneuvers module for Apache to provide
@@ -45,14 +47,31 @@ install -D %{SOURCE2} %{buildroot}%{_httpd_modconfdir}/300-mod_evasive.conf
 
 install -pm 755 .libs/mod_evasive24.so $RPM_BUILD_ROOT%{_libdir}/apache2/modules/
 
+mkdir -p $RPM_BUILD_ROOT/usr/local/cpanel/scripts
+install -pm 755 %{SOURCE3} $RPM_BUILD_ROOT/usr/local/cpanel/scripts/generate_mod_evasive_local_ips_conf.pl
+
 %files
 %defattr(-,root,root)
 %config %{_httpd_confdir}/300-mod_evasive.conf
 %config(noreplace) %{_httpd_modconfdir}/300-mod_evasive.conf
 %attr(0770,root,nobody) %dir /var/log/apache2/mod_evasive
 %attr(0755,root,nobody) %{_httpd_moddir}/mod_evasive24.so
+%attr(0755,root,root) /usr/local/cpanel/scripts/generate_mod_evasive_local_ips_conf.pl
+
+%post
+if [ $1 == 1 ]; then
+    /usr/local/cpanel/scripts/generate_mod_evasive_local_ips_conf.pl %{_httpd_confdir}/300-mod_evasive_local_ips.conf
+fi
+
+%postun
+if [ $1 == 0 ]; then
+    rm %{_httpd_confdir}/300-mod_evasive_local_ips.conf
+fi
 
 %changelog
+* Tue Sep 11 2018 Tim Mullin <tim@cpanel.net> - 1.10.1-5
+- EA-7330: Automatically add local IPs to DOSWhitelist
+
 * Fri Jan 19 2018 Jacob Perkins <jacob.perkins@cpanel.net> - 1.10.1-4
 - EA-7126: Raised default limits to ensure larger bursts of requests can occur without blocking
 
