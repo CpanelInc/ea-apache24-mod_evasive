@@ -1,7 +1,7 @@
 Name:           ea-apache24-mod_evasive
 Version:        1.10.1
 # Doing release_prefix this way for Release allows for OBS-proof versioning, See EA-4544 for more details
-%define         release_prefix 5
+%define         release_prefix 6
 Release:        %{release_prefix}%{?dist}.cpanel
 Vendor:         cPanel, Inc.
 Summary:        Denial of Service evasion module for Apache
@@ -13,6 +13,7 @@ Source:         https://github.com/shivaas/mod_evasive/mod_evasive.tar.gz
 Source1:        300-mod_evasive.conf
 Source2:        300-mod_evasive.modules.conf
 Source3:        generate_mod_evasive_local_ips_conf.pl
+Patch1:         0001-Make-the-response-to-a-blocked-HTTP-request-configur.patch
 BuildRoot: 	%{_tmppath}/%{name}-%{version}-%{release}-root
 BuildRequires:  ea-apache24-devel
 BuildRequires:  curl-devel
@@ -29,6 +30,8 @@ abuses via email and syslog facilities.
 
 %prep
 %setup -q
+
+%patch1 -p1 -b .custom_http_response
 
 %build
 cp mod_evasive{20,24}.c
@@ -69,6 +72,9 @@ if [ $1 == 0 ]; then
 fi
 
 %changelog
+* Fri Jul 09 2021 Tim Mullin <tim@cpanel.net> - 1.10.1-6
+- EA-9924: Make mod_evasive error code configurable
+
 * Tue Sep 11 2018 Tim Mullin <tim@cpanel.net> - 1.10.1-5
 - EA-7330: Automatically add local IPs to DOSWhitelist
 
