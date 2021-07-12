@@ -1,0 +1,129 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tim Mullin <tim@cpanel.net>
+Date: Fri, 9 Jul 2021 15:11:55 -0500
+Subject: [PATCH] Make the response to a blocked HTTP request configurable
+
+Case EA-9924:
+
+Historically mod_evasive would return 403 (Forbidden) for a
+blocked HTTP request. Some administrators may wish to use a
+different value such as 429 (Too Many Requests). Making this
+a configurable parameter will allow them to do this without
+changing the behavior for those who do not.
+---
+ mod_evasive20.c | 41 +++++++++++++++++++++++++++++------------
+ 1 file changed, 29 insertions(+), 12 deletions(-)
+
+diff --git a/mod_evasive20.c b/mod_evasive20.c
+index 4fa228c..20a4840 100644
+--- a/mod_evasive20.c
++++ b/mod_evasive20.c
+@@ -45,12 +45,13 @@ module AP_MODULE_DECLARE_DATA evasive20_module;
+ #define MAILER	"/bin/mail %s"
+ #define  LOG( A, ... ) { openlog("mod_evasive", LOG_PID, LOG_DAEMON); syslog( A, __VA_ARGS__ ); closelog(); }
+ 
+-#define DEFAULT_HASH_TBL_SIZE   3097ul  // Default hash table size
+-#define DEFAULT_PAGE_COUNT      2       // Default maximum page hit count per interval
+-#define DEFAULT_SITE_COUNT      50      // Default maximum site hit count per interval
+-#define DEFAULT_PAGE_INTERVAL   1       // Default 1 Second page interval
+-#define DEFAULT_SITE_INTERVAL   1       // Default 1 Second site interval
+-#define DEFAULT_BLOCKING_PERIOD 10      // Default for Detected IPs; blocked for 10 seconds
++#define DEFAULT_HASH_TBL_SIZE           3097ul  // Default hash table size
++#define DEFAULT_PAGE_COUNT              2       // Default maximum page hit count per interval
++#define DEFAULT_SITE_COUNT              50      // Default maximum site hit count per interval
++#define DEFAULT_PAGE_INTERVAL           1       // Default 1 Second page interval
++#define DEFAULT_SITE_INTERVAL           1       // Default 1 Second site interval
++#define DEFAULT_BLOCKING_PERIOD         10      // Default for Detected IPs; blocked for 10 seconds
++#define DEFAULT_BLOCKING_HTTP_RESPONSE  HTTP_FORBIDDEN     // Default response for a blocked HTTP request
+ #define DEFAULT_LOG_DIR		"/tmp"  // Default temp directory
+ 
+ /* END DoS Evasive Maneuvers Definitions */
+@@ -102,6 +103,7 @@ static int page_interval = DEFAULT_PAGE_INTERVAL;
+ static int site_count = DEFAULT_SITE_COUNT;
+ static int site_interval = DEFAULT_SITE_INTERVAL;
+ static int blocking_period = DEFAULT_BLOCKING_PERIOD;
++static int blocking_http_response = DEFAULT_BLOCKING_HTTP_RESPONSE;
+ static char *email_notify = NULL;
+ static char *log_dir = NULL;
+ static char *system_command = NULL;
+@@ -148,7 +150,7 @@ static int access_checker(request_rec *r)
+       if (n != NULL && t-n->timestamp<blocking_period) {
+  
+         /* If the IP is on "hold", make it wait longer in 403 land */
+-        ret = HTTP_FORBIDDEN;
++        ret = blocking_http_response;
+         n->timestamp = time(NULL);
+ 
+       /* Not on hold, check hit stats */
+@@ -161,7 +163,7 @@ static int access_checker(request_rec *r)
+ 
+           /* If URI is being hit too much, add to "hold" list and 403 */
+           if (t-n->timestamp<page_interval && n->count>=page_count) {
+-            ret = HTTP_FORBIDDEN;
++            ret = blocking_http_response;
+             ntt_insert(hit_list, r->connection->remote_ip, time(NULL));
+           } else {
+ 
+@@ -183,7 +185,7 @@ static int access_checker(request_rec *r)
+ 
+           /* If site is being hit too much, add to "hold" list and 403 */
+           if (t-n->timestamp<site_interval && n->count>=site_count) {
+-            ret = HTTP_FORBIDDEN;
++            ret = blocking_http_response;
+             ntt_insert(hit_list, r->connection->remote_ip, time(NULL));
+           } else {
+ 
+@@ -200,7 +202,7 @@ static int access_checker(request_rec *r)
+       }
+ 
+       /* Perform email notification and system functions */
+-      if (ret == HTTP_FORBIDDEN) {
++      if (ret == blocking_http_response) {
+         char filename[1024];
+         struct stat s;
+         FILE *file;
+@@ -235,13 +237,13 @@ static int access_checker(request_rec *r)
+ 
+         } /* if (temp file does not exist) */
+ 
+-      } /* if (ret == HTTP_FORBIDDEN) */
++      } /* if (ret == blocking_http_response) */
+ 
+     } /* if (r->prev == NULL && r->main == NULL && hit_list != NULL) */
+ 
+     /* END DoS Evasive Maneuvers Code */
+ 
+-    if (ret == HTTP_FORBIDDEN
++    if (ret == blocking_http_response
+ 	&& (ap_satisfies(r) != SATISFY_ANY || !ap_some_auth_required(r))) {
+         ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r,
+             "client denied by server configuration: %s",
+@@ -611,6 +613,18 @@ get_blocking_period(cmd_parms *cmd, void *dconfig, const char *value) {
+   return NULL;
+ }
+ 
++static const char *
++get_blocking_http_response(cmd_parms *cmd, void *dconfig, const char *value) {
++  long n = strtol(value, NULL, 0);
++  if (ap_is_HTTP_VALID_RESPONSE(n)) {
++    blocking_http_response = n;
++  } else {
++    blocking_http_response = DEFAULT_BLOCKING_HTTP_RESPONSE;
++  }
++
++  return NULL;
++}
++
+ static const char *
+ get_log_dir(cmd_parms *cmd, void *dconfig, const char *value) {
+   if (value != NULL && value[0] != 0) {
+@@ -666,6 +680,9 @@ static const command_rec access_cmds[] =
+         AP_INIT_TAKE1("DOSBlockingPeriod", get_blocking_period, NULL, RSRC_CONF,
+ 		"Set blocking period for detected DoS IPs"),
+ 
++        AP_INIT_TAKE1("DOSBlockingHttpResponse", get_blocking_http_response, NULL, RSRC_CONF,
++		"Set response to a blocked HTTP request"),
++
+ 	AP_INIT_TAKE1("DOSEmailNotify", get_email_notify, NULL, RSRC_CONF,
+ 		"Set email notification"),
+ 
