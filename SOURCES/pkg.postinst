@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if test -x "/usr/bin/apt"; then
+    # we must manually set permissions on apt/deb based system because deb’s have no mechanism for permission.
+    chown root:nobody /var/log/apache2/mod_evasive
+    chmod 0770 /var/log/apache2/mod_evasive
+fi
+
