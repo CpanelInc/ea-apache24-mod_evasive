@@ -17,7 +17,13 @@ Patch1:         0001-Make-the-response-to-a-blocked-HTTP-request-configur.patch
 BuildRoot: 	%{_tmppath}/%{name}-%{version}-%{release}-root
 BuildRequires:  ea-apache24-devel
 BuildRequires:  curl-devel
+
+%if 0%{?rhel} >= 10
+BuildRequires:  pcre2-devel
+%else
 BuildRequires:  pcre-devel
+%endif
+
 AutoReq:        0
 
 %description
